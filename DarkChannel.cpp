@@ -13,7 +13,7 @@
 using namespace std;
 using namespace cv;
 #define local_min(a,b) a<b?a:b
-
+#define local_max(a,b) a<b?b:a
 int Q[601*601][2];
 int CA[610*60][2] = {0};
 int dir[8][2] = {{0,1},{1,0},{0,-1},{-1,0},{1,1},{1,-1},{-1,1},{-1,-1}};
@@ -132,24 +132,24 @@ int _tmain(int argc, char* argv[])	{
 				minMaxLoc(rgb_channel[1](Rect(j-width, i-width, patch_size, patch_size)),&temp);
 				t = local_min(t, temp);
 				minMaxLoc(rgb_channel[2](Rect(j-width, i-width, patch_size, patch_size)),&temp);
-				t = local_min(t, temp);
+				t = local_max(t0*255, local_min(t, temp));
 				dark_channel.at<uchar>(i-width,j-width) = t;
-				transimssion.at<uchar>(i-width,j-width) = 255-t;
+				transimssion.at<uchar>(i-width,j-width) = 255-w*t;
 				temp = img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 0];
-				img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 0] = (int)(temp - t)/(1-t/A);
+				img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 0] = (int)(temp - w*A*t/255)/(1-w*t/255);
 				temp = img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 1];
-				img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 1] = (int)(temp - t)/(1-t/A);
+				img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 1] = (int)(temp - w*A*t/255)/(1-w*t/255);
 				temp = img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 2];
-				img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 2] = (int)(temp - t)/(1-t/A);
+				img_template.data[img_template.step*(i-width)+ img_template.channels()*(j-width) + 2] = (int)(temp - w*A*t/255)/(1-w*t/255);
 			}
 		}
 	
 	} catch(Exception e)	{
 		printf("%s\r\n", e.err.c_str());
 	}
-//	imwrite("canon7_dc_15.jpg", dark_channel);
-//	imwrite("canon7_16.jpg", img_template);
-//	imwrite("canon7_trans_15.jpg", transimssion);
+	imwrite("canon7_dc_15.jpg", dark_channel);
+	imwrite("canon7_15.jpg", img_template);
+	imwrite("canon7_trans_15.jpg", transimssion);
 	imshow("image0", img_template);
 	waitKey(0); //µÈ´ý°´¼ü
 	return 0;
