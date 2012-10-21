@@ -30,7 +30,7 @@ static void onMouse( int event, int x, int y, int, void* data)
 Vec3b get_AL(Mat &img, const Mat &dark_channel)
 {
 	int temp;
-	double lo = 5, hi =5;
+	double lo = 10, hi = 10;
 	int range = (img.rows)*(img.cols)*0.01;
 	int i,j,a = 0,transNum[256] = {0};
 	for(i = 0; i < img.rows; i++)	{
@@ -59,7 +59,6 @@ Vec3b get_AL(Mat &img, const Mat &dark_channel)
 			if(dark_channel.at<uchar>(i,j) > thre && mask.at<uchar>(i,j) == 0) {
 				floodFill(img, mask, Point(j,i), Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
 				count = countNonZero(mask);
-				cout <<i <<"," <<j <<" count: " <<count <<endl;
 				if (count - maskcount > blocksize)	{
 					AL = img.at<Vec3b>(i,j);
 					blocksize = count -maskcount;
