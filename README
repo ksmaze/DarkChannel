@@ -1,0 +1,5 @@
+This is an implement of Dark Channel Prior from this paper.
+Later we will try to improve it with adaptive patches.
+
+Reference:
+Kaiming He; Jian Sun; Xiaoou Tang; , "Single image haze removal using dark channel prior," Computer Vision and Pattern Recognition, 2009. CVPR 2009. IEEE Conference on , vol., no., pp.1956-1963, 20-25 June 2009

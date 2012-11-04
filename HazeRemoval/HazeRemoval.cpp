@@ -56,7 +56,7 @@ Vec3b get_AL(Mat &img, const Mat &dark_channel)
 	for(i = 0;i < img.rows;i++){
 		for(j = 0;j < img.cols;j++){
 			temp = dark_channel.at<uchar>(i,j);
-			if(dark_channel.at<uchar>(i,j) > thre && mask.at<uchar>(i,j) == 0) {
+			if(dark_channel.at<uchar>(i,j) >= thre && mask.at<uchar>(i,j) == 0) {
 				floodFill(img, mask, Point(j,i), Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
 				count = countNonZero(mask);
 				if (count - maskcount > blocksize)	{
@@ -103,8 +103,8 @@ int main(int argc, char *argv[])
 				file.replace(found, 4, "_trans.");
 			}
 			Mat transmission = imread(file, CV_8U);
-			Vec3b A = get_AL(img_origin, dark_channel);
-			//Vec3b A = Vec3b(60, 180, 200);
+			//Vec3b A = get_AL(img_origin, dark_channel);
+			Vec3b A = Vec3b(230, 230, 230);
 			for(i = 0; i < img_template.rows; i++)	{
 				for(j = 0; j < img_template.cols; j++)	{
 					t1 = (double)transmission.at<uchar>(i,j)/255.0;

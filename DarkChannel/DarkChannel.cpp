@@ -36,7 +36,7 @@ void getDarkChannel(const Mat &src, Mat &dst, int patch_size)	{
 }
 
 int main(int argc, char* argv[])	{
-	int patch_size = 60;
+	int patch_size = 15;
 	double w = 0.95;
 	double t0 = 0.01;
 	int i, j, k;
