@@ -23,15 +23,15 @@ void getDarkChannel(const Mat &src, Mat &dst, int patch_size)	{
 	src.copyTo(img_padded(Rect(width, width, src.cols, src.rows)));
 	split(img_padded, rgb_channel);
 	for(i = width; i < img_padded.rows-width; i++)	{
-			for(j = width; j < img_padded.cols-width; j++)	{
-				minMaxLoc(rgb_channel[0](Rect(j-width, i-width, patch_size, patch_size)),&t);
-				minMaxLoc(rgb_channel[1](Rect(j-width, i-width, patch_size, patch_size)),&temp);
-				t = local_min(t, temp);
-				minMaxLoc(rgb_channel[2](Rect(j-width, i-width, patch_size, patch_size)),&temp);
-				t = local_min(t, temp);
-				dark_channel.at<uchar>(i-width,j-width) = (uchar)t;
-			}
+		for(j = width; j < img_padded.cols-width; j++)	{
+			minMaxLoc(rgb_channel[0](Rect(j-width, i-width, patch_size, patch_size)),&t);
+			minMaxLoc(rgb_channel[1](Rect(j-width, i-width, patch_size, patch_size)),&temp);
+			t = local_min(t, temp);
+			minMaxLoc(rgb_channel[2](Rect(j-width, i-width, patch_size, patch_size)),&temp);
+			t = local_min(t, temp);
+			dark_channel.at<uchar>(i-width,j-width) = (uchar)t;
 		}
+	}
 	dark_channel.copyTo(dst);
 }
 

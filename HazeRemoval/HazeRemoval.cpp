@@ -12,29 +12,36 @@ using namespace cv;
 #define local_min(a,b) (a<b)?(a):(b)
 #define local_max(a,b) (a<b)?(b):(a)
 
-static void onMouse( int event, int x, int y, int, void* data)
-{
-	Mat *aaa = (Mat *) data;
-	if( event != CV_EVENT_LBUTTONDOWN )
-		return;
+void getAdaptiveDarkChannel(const Mat &src, Mat &dst, Mat &trans, Vec3b &A, int patch_size)	{
+	int width = patch_size/2;
+	int i, j, ii, jj;
+	double lo = 10, hi = 10, dc;
+	int range = (src.rows)*(src.cols)*0.01;
+	int a = 0,transNum[256] = {0};
+	double t, temp;
+	double w = 0.95;
 
-	Point seed = Point(x,y);
 
-	
+	Mat dark_channel(src.size(), CV_8U);
+	Mat img_template(src);
+	vector<Mat> rgb_channel;
 
-	cout <<"x: " <<x <<"y: " <<y <<" p: " <<(int)aaa->at<uchar>(y,x) <<endl;
-	aaa->at<uchar>(y,x) = 255;
-	imshow("dc",*aaa);
-}
 
-Vec3b get_AL(Mat &img, const Mat &dark_channel)
-{
-	int temp;
-	double lo = 10, hi = 10;
-	int range = (img.rows)*(img.cols)*0.01;
-	int i,j,a = 0,transNum[256] = {0};
-	for(i = 0; i < img.rows; i++)	{
-		for(j = 0; j < img.cols; j++)	{
+	Mat img_padded(src.rows + 2*width, src.cols + 2*width, src.type());
+	src.copyTo(img_padded(Rect(width, width, src.cols, src.rows)));
+	split(img_padded, rgb_channel);
+	for(i = width; i < img_padded.rows-width; i++)	{
+		for(j = width; j < img_padded.cols-width; j++)	{
+			minMaxLoc(rgb_channel[0](Rect(j-width, i-width, patch_size, patch_size)),&t);
+			minMaxLoc(rgb_channel[1](Rect(j-width, i-width, patch_size, patch_size)),&temp);
+			t = local_min(t, temp);
+			minMaxLoc(rgb_channel[2](Rect(j-width, i-width, patch_size, patch_size)),&temp);
+			t = local_min(t, temp);
+			dark_channel.at<uchar>(i-width,j-width) = (uchar)t;
+		}
+	}
+	for(i = 0; i < src.rows; i++)	{
+		for(j = 0; j < src.cols; j++)	{
 			transNum[dark_channel.at<uchar>(i,j)]++;
 		}
 	}
@@ -44,35 +51,72 @@ Vec3b get_AL(Mat &img, const Mat &dark_channel)
 		if(count >= range)
 			break;
 	}
-	cout<<i<<endl;
 	int thre = i;
-	Mat mask(img.rows+2, img.cols+2, CV_8U, Scalar(0));
-	Mat tempi(img);
+	Mat mask(src.rows+2, src.cols+2, CV_8U, Scalar(0));
+	Mat temp_mask(mask);
+
+	Vec3b AL;
 	int maskcount = 0;
 	int blocksize = 0;
-	Vec3b AL;
-	//imshow("dc",dark_channel);
-	//setMouseCallback( "dc", onMouse, (void*)&dark_channel );
-	for(i = 0;i < img.rows;i++){
-		for(j = 0;j < img.cols;j++){
+	for(i = 0;i < src.rows;i++){
+		for(j = 0;j < src.cols;j++){
 			temp = dark_channel.at<uchar>(i,j);
 			if(dark_channel.at<uchar>(i,j) >= thre && mask.at<uchar>(i,j) == 0) {
-				floodFill(img, mask, Point(j,i), Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
+				floodFill(src, mask, Point(j,i), Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
 				count = countNonZero(mask);
 				if (count - maskcount > blocksize)	{
-					AL = img.at<Vec3b>(i,j);
+					AL = src.at<Vec3b>(i,j);
 					blocksize = count -maskcount;
-					cout <<"over "<<i <<"," <<j <<", " <<(int)dark_channel.at<uchar>(i,j) <<" " <<(int)mask.at<uchar>(i,j) <<endl;
+					//if (blocksize > 0.2*(src.rows)*(src.cols))	{
+					//	AL.val[0] = AL.val[0]*0.8;
+					//	AL.val[1] = AL.val[1]*0.8;
+					//	AL.val[2] = AL.val[2]*0.8;
+					//}
+					//try this first
+					//this is the method for improving sky region
+					AL.val[0] = AL.val[0]*(1-(double)blocksize/((src.rows)*(src.cols)));
+					AL.val[1] = AL.val[1]*(1-(double)blocksize/((src.rows)*(src.cols)));
+					AL.val[2] = AL.val[2]*(1-(double)blocksize/((src.rows)*(src.cols)));
+					//cout <<"over "<<i <<"," <<j <<", " <<(int)dark_channel.at<uchar>(i,j) <<" " <<(int)mask.at<uchar>(i,j) <<endl;
 				}
-				//imshow("mask", tempi);
-				//waitKey(0);
 				maskcount = count;
 			}
 		}
 	}
-	
-	
-	return AL;
+
+	//refine dark channel and AL, and get the transmission
+	temp_mask.copyTo(mask);
+	maskcount = 0;
+	blocksize = 0;
+	for(i = 0;i < src.rows;i++){
+		for(j = 0;j < src.cols;j++){
+			temp = dark_channel.at<uchar>(i,j);
+			if(mask.at<uchar>(i,j) == 0) {
+				floodFill(src, mask, Point(j,i), Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
+				//use a vector to record all point in this region
+				vector<Point> queue;
+				dc = 255;
+				for(ii = 0;ii < src.rows;ii++){
+					for(jj = 0;jj < src.cols;jj++){
+						if (mask.at<uchar>(i,j) && !temp_mask.at<uchar>(i,j))	{
+							queue.push_back(Point(jj, ii));
+							t = local_min(src.data[src.step*(ii)+ src.channels()*(jj) + 0]/AL.val[0],src.data[src.step*(ii)+ src.channels()*(jj) + 1]/AL.val[1]);
+							t = local_min(t, src.data[src.step*(ii)+ src.channels()*(jj) + 2]/AL.val[2]);
+							dc = local_min(255.0*t, dc);
+						}
+					}
+				}
+				for (ii = 0; ii < queue.size(); ii++)	{
+					dark_channel.at<uchar>(queue.at(ii)) = dc;
+					trans.at<uchar>(queue.at(ii)) = 255.0 - w * dc;
+				}
+				queue.clear();
+				//the region that between to mask is the region we should use same dark_channel;
+				mask.copyTo(temp_mask);
+			}
+		}
+	}
+	dark_channel.copyTo(dst);
 }
 
 int main(int argc, char *argv[])
@@ -96,15 +140,18 @@ int main(int argc, char *argv[])
 			if (found != string::npos)	{
 				file.replace(found, 1, "_dc.");
 			}
-
-			Mat dark_channel = imread(file, CV_8U);
+			Mat dark_channel;
+			Mat transmission;
+			Vec3b A;
+			getAdaptiveDarkChannel(img_origin, dark_channel, transmission, A, patch_size);
+			imwrite(file, dark_channel);
 			found = file.rfind("_dc.");
 			if (found != string::npos)	{
 				file.replace(found, 4, "_trans.");
 			}
-			Mat transmission = imread(file, CV_8U);
-			//Vec3b A = get_AL(img_origin, dark_channel);
-			Vec3b A = Vec3b(230, 230, 230);
+			imwrite(file, transmission);
+			
+			//Vec3b A = Vec3b(230, 230, 230);
 			for(i = 0; i < img_template.rows; i++)	{
 				for(j = 0; j < img_template.cols; j++)	{
 					t1 = (double)transmission.at<uchar>(i,j)/255.0;
