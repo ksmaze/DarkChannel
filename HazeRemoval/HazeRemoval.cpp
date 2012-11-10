@@ -122,12 +122,13 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 					A = src.at<Vec3b>(i,j);
 					Mat tt_mask(temp_mask.size(), temp_mask.type());
 					temp_mask.copyTo(tt_mask);
-					floodFill(src, tt_mask, Point(j,i), Scalar(255,255,255), 0, Scalar(2,2,2), Scalar(2,2,2),FLOODFILL_MASK_ONLY);
+					floodFill(src, tt_mask, Point(j,i), Scalar(255,255,255), 0, Scalar(2,2,2), Scalar(1,1,1),FLOODFILL_MASK_ONLY);
 					int t_count = countNonZero(tt_mask);
 					int t_blocksize = (t_count-maskcount);
 					blocksize = count -maskcount;
-					if ((double)t_blocksize/blocksize > 0.8)	{
-						cout <<"sky region detected" <<endl;
+					cout <<(double)t_blocksize/blocksize <<endl;
+					if ((double)t_blocksize/blocksize > 0.6)	{
+						cout <<(double)t_blocksize/blocksize <<" sky region detected" <<endl;
 						A.val[0] = ((double)0.9*t_blocksize/blocksize)*A.val[0];
 						A.val[1] = ((double)0.9*t_blocksize/blocksize)*A.val[1];
 						A.val[2] = ((double)0.9*t_blocksize/blocksize)*A.val[2];
@@ -165,9 +166,6 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 				}
 				queue.clear();
 				mask.copyTo(temp_mask);
-				//imshow("img1", dark_channel);
-				//imshow("img2", trans);
-				//waitKey(0);
 			}
 		}
 	}
