@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HazeRemoval", "HazeRemoval\HazeRemoval.vcxproj", "{5A729729-57EC-42A0-B99F-1882F2567961}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Canny", "Canny\Canny.vcxproj", "{97B2C3A2-9C76-4A70-A6D2-C5A329A70B4A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -17,6 +19,12 @@ Global
 		{5A729729-57EC-42A0-B99F-1882F2567961}.Release|Win32.ActiveCfg = Release|Win32
 		{5A729729-57EC-42A0-B99F-1882F2567961}.Release|Win32.Build.0 = Release|Win32
 		{5A729729-57EC-42A0-B99F-1882F2567961}.Release|x64.ActiveCfg = Release|Win32
+		{97B2C3A2-9C76-4A70-A6D2-C5A329A70B4A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{97B2C3A2-9C76-4A70-A6D2-C5A329A70B4A}.Debug|Win32.Build.0 = Debug|Win32
+		{97B2C3A2-9C76-4A70-A6D2-C5A329A70B4A}.Debug|x64.ActiveCfg = Debug|Win32
+		{97B2C3A2-9C76-4A70-A6D2-C5A329A70B4A}.Release|Win32.ActiveCfg = Release|Win32
+		{97B2C3A2-9C76-4A70-A6D2-C5A329A70B4A}.Release|Win32.Build.0 = Release|Win32
+		{97B2C3A2-9C76-4A70-A6D2-C5A329A70B4A}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

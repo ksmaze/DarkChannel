@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <time.h>
 using namespace std;
 using namespace cv;
 
@@ -64,15 +65,15 @@ int floodFillC( const Mat &_image, Mat & _mask, vector<Point> &queue,
 	return 0;
 }
 
-void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, int patch_size)	{
+Vec3b getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, int patch_size)	{
 	int width = patch_size/2;
-	int i, j, ii, jj;
-	double lo = 3, hi = 5, dc;
+	int i, j, ii;
+	double lo = 3, hi = 5;
 	int range = (src.rows)*(src.cols)*0.001;
 	int a = 0,transNum[256] = {0};
 	double t, temp;
 	double w = 0.95;
-
+	Vec3b HaveSky(0,0,0);
 
 	Mat img_template(src.size(), src.type());
 	bilateralFilter(src, img_template, 5, 25, 5);
@@ -120,6 +121,9 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 				count = countNonZero(mask);
 				if (count - maskcount > blocksize)	{
 					A = src.at<Vec3b>(i,j);
+					//A.val[0] = ((double)dark_channel.at<uchar>(i,j)/255.0)*A.val[0];
+					//A.val[1] = ((double)dark_channel.at<uchar>(i,j)/255.0)*A.val[1];
+					//A.val[2] = ((double)dark_channel.at<uchar>(i,j)/255.0)*A.val[2];
 					Mat tt_mask(temp_mask.size(), temp_mask.type());
 					temp_mask.copyTo(tt_mask);
 					floodFill(src, tt_mask, Point(j,i), Scalar(255,255,255), 0, Scalar(2,2,2), Scalar(1,1,1),FLOODFILL_MASK_ONLY);
@@ -127,11 +131,14 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 					int t_blocksize = (t_count-maskcount);
 					blocksize = count -maskcount;
 					cout <<(double)t_blocksize/blocksize <<endl;
-					if ((double)t_blocksize/blocksize > 0.6)	{
+					if ((double)t_blocksize/blocksize > 0.2)	{
+						//HaveSky.val[0] = (255.0-dark_channel.at<uchar>(i,j))*0.5;
+						//HaveSky.val[1] = (255.0-dark_channel.at<uchar>(i,j))*0.5;
+						//HaveSky.val[2] = (255.0-dark_channel.at<uchar>(i,j))*0.5;
 						cout <<(double)t_blocksize/blocksize <<" sky region detected" <<endl;
-						A.val[0] = ((double)0.9*t_blocksize/blocksize)*A.val[0];
-						A.val[1] = ((double)0.9*t_blocksize/blocksize)*A.val[1];
-						A.val[2] = ((double)0.9*t_blocksize/blocksize)*A.val[2];
+						A.val[0] = A.val[0]-(255.0-dark_channel.at<uchar>(i,j)*0.9);
+						A.val[1] = A.val[1]-(255.0-dark_channel.at<uchar>(i,j)*0.9);
+						A.val[2] = A.val[2]-(255.0-dark_channel.at<uchar>(i,j)*0.9);
 					}
 				}
 				maskcount = count;
@@ -145,7 +152,7 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 	Mat t_dark_channel(dark_channel.size(), dark_channel.type());
 	dark_channel.copyTo(t_dark_channel);
 	lo = 5;
-	hi = 5;
+	hi = 20;
 	maskcount = 0;
 	blocksize = 0;
 	for(i = 0;i < img_template.rows;i++){
@@ -153,7 +160,7 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 			if(dark_channel.at<uchar>(i,j) >= thre && mask.at<uchar>(i,j) == 0) {
 				//cout <<"fill point (" <<i <<"," <<j <<")"<<endl;
 				vector<Point> queue;
-				floodFillC(img_template, mask, queue, Point(j,i), 15, Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
+				floodFillC(img_template, mask, queue, Point(j,i), 60, Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
 				//use a vector to record all point in this region
 				temp = 255.0;
 				for (ii = 0; ii < queue.size(); ii++)	{
@@ -170,8 +177,8 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 		}
 	}
 	cout <<"start low point" <<endl;
-	lo = 5;
-	hi = 20;
+	lo = 2;
+	hi = 10;
 	maskcount = 0;
 	blocksize = 0;
 	for(i = 0;i < img_template.rows;i++){
@@ -179,7 +186,7 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 			if(mask.at<uchar>(i,j) == 0) {
 				//cout <<"fill point (" <<i <<"," <<j <<")"<<endl;
 				vector<Point> queue;
-				floodFillC(img_template, mask, queue, Point(j,i), 5, Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
+				floodFillC(img_template, mask, queue, Point(j,i), 60, Scalar(255,255,255), 0, Scalar(lo,lo,lo), Scalar(hi,hi,hi),FLOODFILL_MASK_ONLY);
 				//use a vector to record all point in this region
 				temp = 255.0;
 				for (ii = 0; ii < queue.size(); ii++)	{
@@ -198,12 +205,13 @@ void getAdaptiveDarkChannel(Mat &src, Mat &dark_channel, Mat &trans, Vec3b &A, i
 			}
 		}
 	}
-	GaussianBlur(t_dark_channel, dark_channel, Size(5,5), 0, 0);
+	GaussianBlur(t_dark_channel, dark_channel, Size(3,3), 0, 0);
 	for(i = 0;i < src.rows;i++){
 		for(j = 0;j < src.cols;j++){
 			trans.at<uchar>(i,j) = 255.0 - w*dark_channel.at<uchar>(i,j);
 		}
 	}
+	return HaveSky;
 }
 
 int main(int argc, char *argv[])
@@ -230,38 +238,45 @@ int main(int argc, char *argv[])
 			}
 			Mat dark_channel(img_origin.size(), CV_8U, Scalar(0));
 			Mat transmission(img_origin.size(), CV_8U, Scalar(0));
-			Vec3b A;
-			getAdaptiveDarkChannel(img_origin, dark_channel, transmission, A, patch_size);
+			Vec3b A, A2;
+			int lo=2, hi = 10;
+			Diff8uC3 diff(Vec3b(lo,lo,lo), Vec3b(hi,hi,hi));
+			clock_t start, end;
+			start = clock();
+			Vec3b HaveSky = getAdaptiveDarkChannel(img_origin, dark_channel, transmission, A, patch_size);
+			cout <<"A: "<<(int)A.val[0] <<", "<<(int)A.val[1] <<", " <<(int)A.val[2] <<endl; 
+			cout <<"Begining recovering image" <<endl;
+			//A = Vec3b(230, 230, 230);
+			for(i = 0; i < img_template.rows; i++)	{
+				for(j = 0; j < img_template.cols; j++)	{
+					//if (diff(A, img_template.at<Vec3b>(i,j)))	{}
+					t1 = (double)transmission.at<uchar>(i,j)/255.0;
+					t2 = t1*0.99;
+					//B
+					temp = img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 0];
+					temp = local_max(10,(temp-(1-t1)*A.val[0]-HaveSky.val[0])/t2);
+					temp = local_min(temp, 255);
+					img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 0] = (uchar) temp;
+					//G
+					temp = img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 1];
+					temp = local_max(10,(temp-(1-t1)*A.val[1]-HaveSky.val[0])/t2);
+					temp = local_min(temp, 255);
+					img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 1] = (uchar) temp;
+					//R
+					temp = img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 2];
+					temp = local_max(10,(temp-(1-t1)*A.val[2]-HaveSky.val[0])/t2);
+					temp = local_min(temp, 255);
+					img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 2] = (uchar) temp;
+				}
+			}
+			end = clock();
+			cout <<file <<"cost time: " <<end-start <<" ms" <<endl;
 			imwrite(file, dark_channel);
 			found = file.rfind("_dc.");
 			if (found != string::npos)	{
 				file.replace(found, 4, "_trans.");
 			}
 			imwrite(file, transmission);
-			cout <<"A: "<<(int)A.val[0] <<", "<<(int)A.val[1] <<", " <<(int)A.val[2] <<endl; 
-			cout <<"Begining recovering image" <<endl;
-			//A = Vec3b(230, 230, 230);
-			for(i = 0; i < img_template.rows; i++)	{
-				for(j = 0; j < img_template.cols; j++)	{
-					t1 = (double)transmission.at<uchar>(i,j)/255.0;
-					t2 = t1*0.99;
-					//B
-					temp = img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 0];
-					temp = local_max(10,(temp-(1-t1)*A.val[0])/t2);
-					temp = local_min(temp, 255);
-					img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 0] = (uchar) temp;
-					//G
-					temp = img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 1];
-					temp = local_max(10,(temp-(1-t1)*A.val[1])/t2);
-					temp = local_min(temp, 255);
-					img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 1] = (uchar) temp;
-					//R
-					temp = img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 2];
-					temp = local_max(10,(temp-(1-t1)*A.val[2])/t2);
-					temp = local_min(temp, 255);
-					img_template.data[img_template.step*(i)+ img_template.channels()*(j) + 2] = (uchar) temp;
-				}
-			}
 			found = file.rfind("_trans.");
 			if (found != string::npos)	{
 				file.replace(found, 7, "_rec.");
